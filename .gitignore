@@ -1,0 +1,46 @@
+# Binaries for the current project
+*.exe
+*.o
+*.so
+*.dll
+*.wasm
+*.elf
+*.dSYM/
+*.pdb
+
+# Compiled binaries for the current project, if built outside of the current directory
+# For example, if you use `go install` to install your binary to GOBIN
+# or a custom build directory.
+# If your main package is in the root, you might add:
+# project_name
+# If your main package is in a subdirectory, you might add:
+# bin/
+# build/
+
+# Go module cache
+# This ignores the module cache that Go creates for dependencies.
+# This can be large and is not needed in the repository.
+# The `go.mod` and `go.sum` files are essential and should NOT be ignored.
+vendor/
+
+# Test output
+# If you generate test reports or coverage files
+# *.out
+# coverage.out
+
+# Editor/IDE specific files
+.idea/ # IntelliJ IDEA
+.vscode/ # VS Code
+*.iml # IntelliJ IDEA
+*.sublime-project
+*.sublime-workspace
+
+# Operating System generated files
+.DS_Store # macOS
+Thumbs.db # Windows
+ehthumbs.db # Windows
+.directory # Linux
+
+# Environment variables or sensitive data
+# If you use a .env file or similar for local configuration
+.env
