@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Notification Service (WA, SMS, Email)
+Parameters:
+  Env:
+    Type: String
+    Default: local
+  DynamoEndpoint:
+    Type: String
+    Default: http://host.docker.internal:8000
+  DynamoDBTable:
+    Type: String
+    Default: NotificationService
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: provided.al2023
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        ENV:
+          Ref: Env
+        DYNAMO_ENDPOINT:
+          Ref: DynamoEndpoint
+        TABLE_NAME:
+          Ref: DynamoDBTable
+Resources:
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+  RegisterBusinessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: RegisterBusinessFunction
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        RegisterBusinessApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /register-business
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: RegisterBusinessFunction
+      SamResourceId: RegisterBusinessFunction

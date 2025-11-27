@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Notification Service (WA, SMS, Email)
+
+Parameters:
+  Env:
+    Type: String
+    Default: local
+  DynamoEndpoint:
+    Type: String
+    Default: http://host.docker.internal:8000
+  DynamoDBTable:
+    Type: String
+    Default: NotificationService
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: provided.al2023
+    MemorySize: 256
+    Tracing: Active
+    Environment:
+      Variables:
+        ENV: !Ref Env
+        DYNAMO_ENDPOINT: !Ref DynamoEndpoint
+        TABLE_NAME: !Ref DynamoDBTable
+
+Resources:
+  #######################################
+  # API GATEWAY
+  #######################################
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+
+  #######################################
+  # LAMBDA: Register Business
+  #######################################
+  RegisterBusinessFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        RegisterBusinessApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /register-business
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: RegisterBusinessFunction
+
+  #######################################
+  # LAMBDA: Send Notification
+  #######################################
+  # SendNotificationFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: api/send_notification
+  #     CodeUri: api/
+  #     Policies:
+  #       - DynamoDBCrudPolicy:
+  #           TableName: NotificationService
+  #     Events:
+  #       SendNotificationApi:
+  #         Type: Api
+  #         Properties:
+  #           RestApiId: !Ref ApiGateway
+  #           Path: /send-notification
+  #           Method: POST
+
+  # #######################################
+  # # LAMBDA: Get Templates
+  # #######################################
+  # GetTemplatesFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: api/get_templates
+  #     CodeUri: api/
+  #     Policies:
+  #       - DynamoDBReadPolicy:
+  #           TableName: NotificationService
+  #     Events:
+  #       GetTemplatesApi:
+  #         Type: Api
+  #         Properties:
+  #           RestApiId: !Ref ApiGateway
+  #           Path: /templates
+  #           Method: GET
+
+  # #######################################
+  # # LAMBDA: Get Plans
+  # #######################################
+  # GetPlansFunction:
+  #   Type: AWS::Serverless::Function
+  #   Properties:
+  #     Handler: api/get_plans
+  #     CodeUri: api/
+  #     Policies:
+  #       - DynamoDBReadPolicy:
+  #           TableName: NotificationService
+  #     Events:
+  #       GetPlansApi:
+  #         Type: Api
+  #         Properties:
+  #           RestApiId: !Ref ApiGateway
+  #           Path: /plans
+  #           Method: GET
+
+# Outputs:
+#   ApiUrl:
+#     Description: "API base URL"
+#     Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod"
