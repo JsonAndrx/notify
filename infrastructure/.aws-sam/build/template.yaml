@@ -42,10 +42,86 @@ Resources:
           Properties:
             RestApiId:
               Ref: ApiGateway
-            Path: /register-business
+            Path: /v1/business/register
             Method: POST
     Metadata:
       BuildMethod: makefile
       BuildProperties:
         Target: RegisterBusinessFunction
       SamResourceId: RegisterBusinessFunction
+  RegenerateAPIKeyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: RegenerateAPIKeyFunction
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        RegenerateKeyApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /v1/account/regenerate-key
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: RegenerateAPIKeyFunction
+      SamResourceId: RegenerateAPIKeyFunction
+  AccountInfoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: AccountInfoFunction
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        AccountInfoApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /v1/account/info
+            Method: GET
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: AccountInfoFunction
+      SamResourceId: AccountInfoFunction
+  PlanUsageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: PlanUsageFunction
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        PlanUsageApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /v1/plan/usage
+            Method: GET
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: PlanUsageFunction
+      SamResourceId: PlanUsageFunction
+  SendNotificationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SendNotificationFunction
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        SendNotificationApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /v1/notifications/send
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: SendNotificationFunction
+      SamResourceId: SendNotificationFunction
