@@ -7,6 +7,8 @@ import (
 	"notify-backend/internal/db"
 	"notify-backend/internal/repository"
 	"time"
+
+	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
 type SendWhatsAppRequest struct {
@@ -23,14 +25,35 @@ type SendWhatsAppResponse struct {
 	NotificationLeft  int    `json:"notification_left"`
 }
 
-// buildTwilioContentVariables convierte parámetros nombrados a formato JSON de Twilio
-// Ejemplo: {"1":"Juan Pérez","2":"Juan","3":"cita médica","4":"15 de dic","5":"+573001234567"}
 func buildTwilioContentVariables(paramOrder []string, paramValues map[string]string) string {
-	// Crear mapa con índices numéricos (1, 2, 3, ...)
 	variables := make(map[string]string)
-	for i, paramName := range paramOrder {
-		// Twilio usa índices basados en 1 (no en 0)
-		variables[fmt.Sprintf("%d", i+1)] = paramValues[paramName]
+
+	idx := 1
+	skipHeaderName := false
+
+	// Verificar si tenemos tanto header_name como body_name
+	hasHeaderName := false
+	hasBodyName := false
+	for _, paramName := range paramOrder {
+		if paramName == "header_name" {
+			hasHeaderName = true
+		}
+		if paramName == "body_name" {
+			hasBodyName = true
+		}
+	}
+
+	// Si tenemos ambos, skip header_name porque body_name será el {{1}} compartido
+	skipHeaderName = hasHeaderName && hasBodyName
+
+	for _, paramName := range paramOrder {
+		// Saltar header_name si tenemos body_name
+		if paramName == "header_name" && skipHeaderName {
+			continue
+		}
+
+		variables[fmt.Sprintf("%d", idx)] = paramValues[paramName]
+		idx++
 	}
 
 	jsonBytes, _ := json.Marshal(variables)
@@ -96,36 +119,35 @@ func SendWhatsAppService(apiKey string, req SendWhatsAppRequest) (*SendWhatsAppR
 	// Twilio espera variables en formato: {"1":"valor1","2":"valor2","3":"valor3",...}
 	contentVariables := buildTwilioContentVariables(template.Parameters, req.Parameters)
 
-	// TODO: Integración real con Twilio WhatsApp
-	// Aquí deberías enviar a Twilio usando:
-	//
-	// import "github.com/twilio/twilio-go"
-	// import twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
-	//
-	// twilioClient := twilio.NewRestClientWithParams(twilio.ClientParams{
-	//     Username: os.Getenv("TWILIO_ACCOUNT_SID"),
-	//     Password: os.Getenv("TWILIO_AUTH_TOKEN"),
-	// })
-	//
-	// params := &twilioApi.CreateMessageParams{}
-	// params.SetTo("whatsapp:" + req.To)
-	// params.SetFrom("whatsapp:" + os.Getenv("TWILIO_WHATSAPP_NUMBER"))
-	// params.SetContentSid(template.ExternalID) // HXee830abc1d548d784f6963529c36b327
-	// params.SetContentVariables(contentVariables) // {"1":"Juan Pérez","2":"Juan",...}
-	//
-	// message, err := twilioClient.Api.CreateMessage(params)
-	// if err != nil {
-	//     return nil, fmt.Errorf("failed to send WhatsApp message: %v", err)
-	// }
-	// notificationID := *message.Sid
+	var notificationID string
 
-	// Por ahora simulamos el envío exitoso
-	// En producción, aquí usarías el SID del mensaje de Twilio
-	notificationID := fmt.Sprintf("WA_%d", time.Now().UnixNano())
+	// Obtener cliente de Twilio
+	twilioClient := GetTwilioClient()
+	twilioWhatsAppNumber := GetTwilioWhatsAppNumber()
 
-	// Log para debugging (eliminar en producción o usar logger apropiado)
-	fmt.Printf("WhatsApp simulation - To: %s, Template: %s, ContentSID: %s, Variables: %s\n",
-		req.To, template.TemplateID, template.ExternalID, contentVariables)
+	if twilioClient != nil && twilioWhatsAppNumber != "" {
+		// Integración real con Twilio WhatsApp
+		params := &twilioApi.CreateMessageParams{}
+		params.SetTo("whatsapp:" + req.To)
+		params.SetFrom("whatsapp:" + twilioWhatsAppNumber)
+		params.SetContentSid(template.ExternalID)
+		params.SetContentVariables(contentVariables)
+
+		message, err := twilioClient.Api.CreateMessage(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to send WhatsApp message: %v", err)
+		}
+
+		notificationID = *message.Sid
+		fmt.Printf("WhatsApp sent - MessageSID: %s, To: %s, Template: %s\n",
+			notificationID, req.To, template.TemplateID)
+	} else {
+		// Modo simulación (sin credenciales de Twilio)
+		notificationID = fmt.Sprintf("WA_SIM_%d", time.Now().UnixNano())
+		fmt.Printf("WhatsApp SIMULATION - To: %s, Template: %s, ContentSID: %s, Variables: %s\n",
+			req.To, template.TemplateID, template.ExternalID, contentVariables)
+		fmt.Println("💡 Tip: Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN y TWILIO_WHATSAPP_NUMBER para envíos reales")
+	}
 
 	// Incrementar contador de uso
 	err = usageRepo.IncrementUsage(ctx, businessID, usage.SK)

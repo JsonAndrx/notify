@@ -44,3 +44,4 @@ ehthumbs.db # Windows
 # Environment variables or sensitive data
 # If you use a .env file or similar for local configuration
 .env
+aws-sam/

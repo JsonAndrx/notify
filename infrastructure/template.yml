@@ -12,6 +12,19 @@ Parameters:
   DynamoDBTable:
     Type: String
     Default: NotificationService
+  TwilioAccountSid:
+    Type: String
+    Default: ""
+    Description: "Twilio Account SID"
+  TwilioAuthToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: "Twilio Auth Token"
+  TwilioWhatsAppNumber:
+    Type: String
+    Default: ""
+    Description: "Twilio WhatsApp Number (e.g., +14155238886)"
 
 Globals:
   Function:
@@ -24,6 +37,9 @@ Globals:
         ENV: !Ref Env
         DYNAMO_ENDPOINT: !Ref DynamoEndpoint
         TABLE_NAME: !Ref DynamoDBTable
+        TWILIO_ACCOUNT_SID: !Ref TwilioAccountSid
+        TWILIO_AUTH_TOKEN: !Ref TwilioAuthToken
+        TWILIO_WHATSAPP_NUMBER: !Ref TwilioWhatsAppNumber
 
 Resources:
   #######################################

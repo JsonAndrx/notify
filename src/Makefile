@@ -2,7 +2,7 @@
 
 SRC_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 PROJECT_ROOT := $(realpath $(SRC_DIR)/..)
-BUILD_DIR := $(PROJECT_ROOT)/infrastructure/.aws-sam/build
+BUILD_DIR := $(PROJECT_ROOT)/infrastructure/aws-sam/build
 
 all: build
 

@@ -31,14 +31,13 @@ aws dynamodb put-item \
         "provider": {"S": "twilio"},
         "externalId": {"S": "HXee830abc1d548d784f6963529c36b327"},
         "parameters": {"L": [
-            {"S": "header_name"},
-            {"S": "body_name"},
+            {"S": "name"},
             {"S": "service"},
             {"S": "date"},
             {"S": "contact"}
         ]},
-        "parameterCount": {"N": "5"},
-        "description": {"S": "Header={{1}}: nombre | Body: 👋 ¡Hola {{1}}=nombre!, te recordamos tu {{2}}=servicio programado(a) para {{3}}=fecha. ⏰ contáctanos a {{4}}=contacto, Si necesitas reprogramar."},
+        "parameterCount": {"N": "4"},
+        "description": {"S": "Header y Body usan {{1}}=nombre | Body: 👋 ¡Hola {{1}}=nombre!, te recordamos tu {{2}}=servicio programado(a) para {{3}}=fecha. ⏰ contáctanos a {{4}}=contacto, Si necesitas reprogramar."},
         "active": {"BOOL": true},
         "createdAt": {"S": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}
     }' > /dev/null
@@ -60,14 +59,13 @@ aws dynamodb put-item \
         "provider": {"S": "twilio"},
         "externalId": {"S": "HX78b9865cd3ad336a37d17fa63b7f0c26"},
         "parameters": {"L": [
-            {"S": "header_name"},
-            {"S": "body_name"},
+            {"S": "name"},
             {"S": "service"},
             {"S": "status"},
             {"S": "company"}
         ]},
-        "parameterCount": {"N": "5"},
-        "description": {"S": "Header={{1}}: nombre | Body: 👋 ¡Hola {{1}}=nombre!, tenemos una actualización sobre tu {{2}}=servicio. 📍 Estado actual: {{3}}=estado. Somos {{4}}=empresa, te mantendremos informado(a)."},
+        "parameterCount": {"N": "4"},
+        "description": {"S": "Header y Body usan {{1}}=nombre | Body: 👋 ¡Hola {{1}}=nombre!, tenemos una actualización sobre tu {{2}}=servicio. 📍 Estado actual: {{3}}=estado. Somos {{4}}=empresa, te mantendremos informado(a)."},
         "active": {"BOOL": true},
         "createdAt": {"S": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}
     }' > /dev/null
@@ -89,14 +87,13 @@ aws dynamodb put-item \
         "provider": {"S": "twilio"},
         "externalId": {"S": "HXcbd993c4737e3c2a9b0f9a7332f01b33"},
         "parameters": {"L": [
-            {"S": "header_name"},
-            {"S": "body_name"},
+            {"S": "name"},
             {"S": "service"},
             {"S": "detail"},
             {"S": "company"}
         ]},
-        "parameterCount": {"N": "5"},
-        "description": {"S": "Header={{1}}: nombre | Body: 👋 ¡Hola {{1}}=nombre!, tu {{2}}=servicio ha sido confirmado(a). 📌 Detalle: {{3}}=detalle. Somos {{4}}=empresa gracias por confiar en nosotros."},
+        "parameterCount": {"N": "4"},
+        "description": {"S": "Header y Body usan {{1}}=nombre | Body: 👋 ¡Hola {{1}}=nombre!, tu {{2}}=servicio ha sido confirmado(a). 📌 Detalle: {{3}}=detalle. Somos {{4}}=empresa gracias por confiar en nosotros."},
         "active": {"BOOL": true},
         "createdAt": {"S": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}
     }' > /dev/null
@@ -107,23 +104,20 @@ echo ""
 echo -e "${GREEN}✓ Templates creados exitosamente${NC}"
 echo ""
 echo "Templates disponibles:"
-echo "  1. recordatorio_general"
-echo "     - header_name: {{1}} del header"
-echo "     - body_name: {{1}} del body"
+echo "  1. recordatorio_general (4 parámetros)"
+echo "     - name: {{1}} (usado en header y body)"
 echo "     - service: {{2}} del body"
 echo "     - date: {{3}} del body"
 echo "     - contact: {{4}} del body"
 echo ""
-echo "  2. actualizacion_estado"
-echo "     - header_name: {{1}} del header"
-echo "     - body_name: {{1}} del body"
+echo "  2. actualizacion_estado (4 parámetros)"
+echo "     - name: {{1}} (usado en header y body)"
 echo "     - service: {{2}} del body"
 echo "     - status: {{3}} del body"
 echo "     - company: {{4}} del body"
 echo ""
-echo "  3. confirmacion_general"
-echo "     - header_name: {{1}} del header"
-echo "     - body_name: {{1}} del body"
+echo "  3. confirmacion_general (4 parámetros)"
+echo "     - name: {{1}} (usado en header y body)"
 echo "     - service: {{2}} del body"
 echo "     - detail: {{3}} del body"
 echo "     - company: {{4}} del body"
@@ -136,10 +130,9 @@ echo '  -d '"'"'{
     "to": "+573001234567",
     "template_id": "recordatorio_general",
     "parameters": {
-      "header_name": "Juan Pérez",
-      "body_name": "Juan",
-      "service": "cita médica",
-      "date": "15 de diciembre a las 10:00 AM",
-      "contact": "+573001234567"
+      "name": "Yeison Peñaranda",
+      "service": "Suscripcion Mensual",
+      "date": "esta proxima a vencer el 1 de Diciembre",
+      "contact": "notify@soporte.com"
     }
   }'"'"
