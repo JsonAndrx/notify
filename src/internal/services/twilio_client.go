@@ -28,3 +28,8 @@ func GetTwilioClient() *twilio.RestClient {
 func GetTwilioWhatsAppNumber() string {
 	return os.Getenv("TWILIO_WHATSAPP_NUMBER")
 }
+
+// GetTwilioPhoneNumber obtiene el número de teléfono de Twilio para SMS desde variables de entorno
+func GetTwilioPhoneNumber() string {
+	return os.Getenv("TWILIO_PHONE_NUMBER")
+}

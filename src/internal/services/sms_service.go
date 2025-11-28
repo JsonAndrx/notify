@@ -6,6 +6,8 @@ import (
 	"notify-backend/internal/db"
 	"notify-backend/internal/repository"
 	"time"
+
+	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
 type SendSMSRequest struct {
@@ -26,6 +28,17 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 	planRepo := repository.NewPlanRepository(client, "NotificationService")
 	usageRepo := repository.NewUsageRepository(client, "NotificationService")
 	ctx := context.TODO()
+
+	// Validar longitud del mensaje
+	if len(req.Message) == 0 {
+		return nil, fmt.Errorf("message cannot be empty")
+	}
+
+	// SMS estándar: 160 caracteres para GSM-7, 70 para Unicode
+	// Permitimos hasta 1600 caracteres (10 segmentos concatenados)
+	if len(req.Message) > 1600 {
+		return nil, fmt.Errorf("message too long. Maximum 1600 characters allowed")
+	}
 
 	// Buscar negocio por API Key
 	business, err := businessRepo.GetByAPIKey(ctx, apiKey)
@@ -52,9 +65,32 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 		return nil, fmt.Errorf("notification limit reached")
 	}
 
-	// TODO: Integración real con proveedor de SMS (Twilio, etc.)
-	// Por ahora simulamos el envío
-	notificationID := fmt.Sprintf("SMS_%d", time.Now().UnixNano())
+	var notificationID string
+
+	// Obtener cliente de Twilio
+	twilioClient := GetTwilioClient()
+	twilioPhoneNumber := GetTwilioPhoneNumber()
+
+	if twilioClient != nil && twilioPhoneNumber != "" {
+		// Integración real con Twilio SMS
+		params := &twilioApi.CreateMessageParams{}
+		params.SetTo(req.To)
+		params.SetFrom(twilioPhoneNumber)
+		params.SetBody(req.Message)
+
+		message, err := twilioClient.Api.CreateMessage(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to send SMS: %v", err)
+		}
+
+		notificationID = *message.Sid
+		fmt.Printf("SMS sent - MessageSID: %s, To: %s\n", notificationID, req.To)
+	} else {
+		// Modo simulación (sin credenciales de Twilio)
+		notificationID = fmt.Sprintf("SMS_SIM_%d", time.Now().UnixNano())
+		fmt.Printf("SMS SIMULATION - To: %s, Message: %s\n", req.To, req.Message)
+		fmt.Println("💡 Tip: Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN y TWILIO_PHONE_NUMBER para envíos reales")
+	}
 
 	// Incrementar contador de uso
 	err = usageRepo.IncrementUsage(ctx, businessID, usage.SK)

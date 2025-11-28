@@ -14,7 +14,7 @@ import (
 
 type SendSMSRequest struct {
 	To      string `json:"to" validate:"required"`
-	Message string `json:"message" validate:"required,max=160"`
+	Message string `json:"message" validate:"required,max=1600"`
 }
 
 func SendSMSHandler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -49,6 +49,10 @@ func SendSMSHandler(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 			statusCode = 401
 		} else if errMsg == "notification limit reached" {
 			statusCode = 429
+		} else if errMsg == "message cannot be empty" || errMsg == "message too long. Maximum 1600 characters allowed" {
+			statusCode = 400
+		} else if len(errMsg) > 16 && errMsg[:16] == "failed to send SMS" {
+			statusCode = 502
 		}
 
 		return response.ErrorResponse(statusCode, errMsg), nil
