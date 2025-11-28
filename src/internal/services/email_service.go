@@ -32,7 +32,7 @@ func SendEmailService(apiKey string, req SendEmailRequest) (*SendEmailResponse, 
 	// Buscar negocio por API Key
 	business, err := businessRepo.GetByAPIKey(ctx, apiKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid API key")
+		return nil, fmt.Errorf("authentication failed")
 	}
 
 	businessID := business.PK[9:] // Remover "BUSINESS#"
@@ -40,13 +40,13 @@ func SendEmailService(apiKey string, req SendEmailRequest) (*SendEmailResponse, 
 	// Obtener plan
 	plan, err := planRepo.GetByID(ctx, business.PlanID)
 	if err != nil {
-		return nil, fmt.Errorf("plan not found")
+		return nil, fmt.Errorf("service unavailable")
 	}
 
 	// Verificar o crear período de uso
 	usage, err := usageRepo.CheckAndCreateNewPeriod(ctx, businessID, business.PlanID, plan.PeriodDays)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check usage: %v", err)
+		return nil, fmt.Errorf("service unavailable")
 	}
 
 	// Verificar límite de notificaciones
@@ -61,7 +61,9 @@ func SendEmailService(apiKey string, req SendEmailRequest) (*SendEmailResponse, 
 	// Incrementar contador de uso
 	err = usageRepo.IncrementUsage(ctx, businessID, usage.SK)
 	if err != nil {
-		return nil, fmt.Errorf("failed to increment usage: %v", err)
+		// Log interno para debugging
+		fmt.Printf("Failed to increment usage: %v\n", err)
+		// No fallar la request si el mensaje ya fue enviado
 	}
 
 	// Calcular notificaciones restantes

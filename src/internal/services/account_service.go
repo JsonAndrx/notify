@@ -28,13 +28,13 @@ func RegenerateAPIKeyService(email, phone, currentAPIKey string) (string, error)
 	// Generar nueva API Key
 	newAPIKey, err := utils.GenerateAPIKey()
 	if err != nil {
-		return "", fmt.Errorf("failed to generate API key: %v", err)
+		return "", fmt.Errorf("service unavailable")
 	}
 
 	// Actualizar en base de datos
 	err = repo.UpdateAPIKey(ctx, business.PK, business.APIKey, newAPIKey, time.Now().Format(time.RFC3339))
 	if err != nil {
-		return "", fmt.Errorf("failed to update API key: %v", err)
+		return "", fmt.Errorf("service unavailable")
 	}
 
 	return newAPIKey, nil
@@ -48,7 +48,7 @@ func GetBusinessInfoService(apiKey string) (*BusinessInfo, error) {
 	// Buscar negocio por API Key
 	business, err := repo.GetByAPIKey(ctx, apiKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid API key")
+		return nil, fmt.Errorf("authentication failed")
 	}
 
 	info := &BusinessInfo{

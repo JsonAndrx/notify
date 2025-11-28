@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"notify-backend/internal/db"
 	"notify-backend/internal/repository"
-	"time"
+	"notify-backend/internal/utils"
 
 	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
 )
@@ -29,21 +29,26 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 	usageRepo := repository.NewUsageRepository(client, "NotificationService")
 	ctx := context.TODO()
 
+	// Validar formato del número de teléfono
+	formattedPhone := utils.FormatPhoneNumber(req.To)
+	if !utils.ValidatePhoneNumber(formattedPhone) {
+		return nil, fmt.Errorf("invalid phone number format")
+	}
+	req.To = formattedPhone
+
 	// Validar longitud del mensaje
 	if len(req.Message) == 0 {
 		return nil, fmt.Errorf("message cannot be empty")
 	}
 
-	// SMS estándar: 160 caracteres para GSM-7, 70 para Unicode
-	// Permitimos hasta 1600 caracteres (10 segmentos concatenados)
 	if len(req.Message) > 1600 {
-		return nil, fmt.Errorf("message too long. Maximum 1600 characters allowed")
+		return nil, fmt.Errorf("message too long")
 	}
 
 	// Buscar negocio por API Key
 	business, err := businessRepo.GetByAPIKey(ctx, apiKey)
 	if err != nil {
-		return nil, fmt.Errorf("invalid API key")
+		return nil, fmt.Errorf("authentication failed")
 	}
 
 	businessID := business.PK[9:] // Remover "BUSINESS#"
@@ -51,13 +56,13 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 	// Obtener plan
 	plan, err := planRepo.GetByID(ctx, business.PlanID)
 	if err != nil {
-		return nil, fmt.Errorf("plan not found")
+		return nil, fmt.Errorf("service unavailable")
 	}
 
 	// Verificar o crear período de uso
 	usage, err := usageRepo.CheckAndCreateNewPeriod(ctx, businessID, business.PlanID, plan.PeriodDays)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check usage: %v", err)
+		return nil, fmt.Errorf("service unavailable")
 	}
 
 	// Verificar límite de notificaciones
@@ -65,37 +70,37 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 		return nil, fmt.Errorf("notification limit reached")
 	}
 
-	var notificationID string
-
 	// Obtener cliente de Twilio
 	twilioClient := GetTwilioClient()
 	twilioPhoneNumber := GetTwilioPhoneNumber()
 
-	if twilioClient != nil && twilioPhoneNumber != "" {
-		// Integración real con Twilio SMS
-		params := &twilioApi.CreateMessageParams{}
-		params.SetTo(req.To)
-		params.SetFrom(twilioPhoneNumber)
-		params.SetBody(req.Message)
-
-		message, err := twilioClient.Api.CreateMessage(params)
-		if err != nil {
-			return nil, fmt.Errorf("failed to send SMS: %v", err)
-		}
-
-		notificationID = *message.Sid
-		fmt.Printf("SMS sent - MessageSID: %s, To: %s\n", notificationID, req.To)
-	} else {
-		// Modo simulación (sin credenciales de Twilio)
-		notificationID = fmt.Sprintf("SMS_SIM_%d", time.Now().UnixNano())
-		fmt.Printf("SMS SIMULATION - To: %s, Message: %s\n", req.To, req.Message)
-		fmt.Println("💡 Tip: Configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN y TWILIO_PHONE_NUMBER para envíos reales")
+	// Verificar que Twilio esté configurado
+	if twilioClient == nil || twilioPhoneNumber == "" {
+		return nil, fmt.Errorf("service temporarily unavailable")
 	}
+
+	// Enviar SMS a través de Twilio
+	params := &twilioApi.CreateMessageParams{}
+	params.SetTo(req.To)
+	params.SetFrom(twilioPhoneNumber)
+	params.SetBody(req.Message)
+
+	message, err := twilioClient.Api.CreateMessage(params)
+	if err != nil {
+		// Log interno del error real para debugging
+		fmt.Printf("Twilio SMS error: %v\n", err)
+		return nil, fmt.Errorf("failed to send notification")
+	}
+
+	notificationID := *message.Sid
+	fmt.Printf("SMS sent - MessageSID: %s, To: %s\n", notificationID, req.To)
 
 	// Incrementar contador de uso
 	err = usageRepo.IncrementUsage(ctx, businessID, usage.SK)
 	if err != nil {
-		return nil, fmt.Errorf("failed to increment usage: %v", err)
+		// Log interno para debugging
+		fmt.Printf("Failed to increment usage: %v\n", err)
+		// No fallar la request si el mensaje ya fue enviado
 	}
 
 	// Calcular notificaciones restantes

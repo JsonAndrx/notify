@@ -32,13 +32,13 @@ func BusinessRegisterService(name string, email string, phone string, planID str
 	// Verificar que el plan existe
 	plan, err := planRepo.GetByID(ctx, planID)
 	if err != nil {
-		return nil, fmt.Errorf("plan not found: %v", err)
+		return nil, fmt.Errorf("invalid plan")
 	}
 
 	// Verificar email existente
 	emailExists, err := repo.EmailExists(ctx, email)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("service unavailable")
 	}
 	if emailExists {
 		return nil, fmt.Errorf("email already registered")
@@ -47,7 +47,7 @@ func BusinessRegisterService(name string, email string, phone string, planID str
 	// Verificar phone existente
 	phoneExists, err := repo.PhoneExists(ctx, phone)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("service unavailable")
 	}
 	if phoneExists {
 		return nil, fmt.Errorf("phone already registered")
@@ -56,7 +56,7 @@ func BusinessRegisterService(name string, email string, phone string, planID str
 	// Generar API Key
 	apiKey, err := utils.GenerateAPIKey()
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate API key: %v", err)
+		return nil, fmt.Errorf("service unavailable")
 	}
 
 	// Crear nuevo negocio
@@ -92,7 +92,7 @@ func BusinessRegisterService(name string, email string, phone string, planID str
 	}
 
 	if err := usageRepo.Create(ctx, usage); err != nil {
-		return nil, fmt.Errorf("failed to create usage period: %v", err)
+		return nil, fmt.Errorf("service unavailable")
 	}
 
 	return &BusinessRegisterResult{
