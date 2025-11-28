@@ -63,7 +63,14 @@ chmod +x scripts/init_free_plan.sh
 ./scripts/init_free_plan.sh
 ```
 
-### 4. Compilar y Desplegar
+### 4. Inicializar Templates de WhatsApp
+
+```bash
+chmod +x scripts/init_templates.sh
+./scripts/init_templates.sh
+```
+
+### 5. Compilar y Desplegar
 
 ```bash
 cd infrastructure
@@ -168,9 +175,9 @@ X-API-Key: nfy_...
 }
 ```
 
-### 5. Enviar Notificación
+### 5. Enviar Notificación WhatsApp (con Template)
 
-**POST** `/v1/notifications/send`
+**POST** `/v1/notifications/whatsapp`
 
 **Headers:**
 ```
@@ -181,8 +188,11 @@ X-API-Key: nfy_...
 ```json
 {
   "to": "+1234567890",
-  "message": "Hola, esta es una notificación",
-  "type": "whatsapp"
+  "template_id": "whatsapp-verification-code",
+  "parameters": {
+    "name": "Juan",
+    "code": "123456"
+  }
 }
 ```
 
@@ -190,7 +200,8 @@ X-API-Key: nfy_...
 ```json
 {
   "success": true,
-  "notification_id": "NOTIF_...",
+  "notification_id": "WA_...",
+  "template_used": "Código de Verificación",
   "notification_count": 11,
   "notification_left": 39
 }
@@ -199,7 +210,64 @@ X-API-Key: nfy_...
 **Códigos de Error:**
 - `401`: API Key inválida
 - `429`: Límite de notificaciones alcanzado
-- `400`: Request inválido
+- `404`: Template no encontrado o inactivo
+- `400`: Parámetros inválidos o faltantes
+
+### 6. Enviar SMS
+
+**POST** `/v1/notifications/sms`
+
+**Headers:**
+```
+X-API-Key: nfy_...
+```
+
+**Body:**
+```json
+{
+  "to": "+1234567890",
+  "message": "Tu código de verificación es: 123456"
+}
+```
+
+**Respuesta:**
+```json
+{
+  "success": true,
+  "notification_id": "SMS_...",
+  "notification_count": 12,
+  "notification_left": 38
+}
+```
+
+### 7. Enviar Email
+
+**POST** `/v1/notifications/email`
+
+**Headers:**
+```
+X-API-Key: nfy_...
+```
+
+**Body:**
+```json
+{
+  "to": "usuario@example.com",
+  "subject": "Bienvenido a nuestro servicio",
+  "body": "<h1>Hola!</h1><p>Gracias por registrarte</p>",
+  "html": true
+}
+```
+
+**Respuesta:**
+```json
+{
+  "success": true,
+  "notification_id": "EMAIL_...",
+  "notification_count": 13,
+  "notification_left": 37
+}
+```
 
 ## 🗃️ Estructura de Datos en DynamoDB
 
@@ -235,6 +303,57 @@ PK: BUSINESS#{uuid}
 SK: USAGE#{date}
 businessId, planId, notificationCount, periodStart, periodEnd, createdAt, updatedAt
 ```
+
+### Template
+```
+PK: TEMPLATE#{templateId}
+SK: METADATA
+templateId, name, type, provider, externalId, parameters[], parameterCount, description, active, createdAt, updatedAt
+```
+
+## 📋 Plantillas de WhatsApp
+
+El sistema soporta plantillas de WhatsApp con validación de parámetros. Las plantillas se configuran con:
+
+- **ID único**: Identificador de la plantilla
+- **Tipo**: whatsapp, sms, email
+- **Provider**: twilio, sendgrid, etc.
+- **External ID**: ID de la plantilla en el proveedor externo
+- **Parámetros**: Lista de parámetros requeridos
+- **Validación**: Automática de parámetros faltantes o extra
+
+### Plantillas Incluidas
+
+#### 1. Código de Verificación
+- **ID**: `whatsapp-verification-code`
+- **Parámetros**: `name`, `code`
+- **Uso**: Envío de códigos de autenticación
+
+```json
+{
+  "to": "+1234567890",
+  "template_id": "whatsapp-verification-code",
+  "parameters": {
+    "name": "Juan",
+    "code": "123456"
+  }
+}
+```
+
+#### 2. Confirmación de Pedido
+- **ID**: `whatsapp-order-confirmation`
+- **Parámetros**: `customer_name`, `order_number`, `total_amount`
+- **Uso**: Confirmación de compras
+
+#### 3. Recordatorio de Cita
+- **ID**: `whatsapp-appointment-reminder`
+- **Parámetros**: `name`, `date`, `time`, `location`
+- **Uso**: Recordatorios de citas médicas, reuniones, etc.
+
+#### 4. Mensaje de Bienvenida
+- **ID**: `whatsapp-welcome`
+- **Parámetros**: `name`
+- **Uso**: Onboarding de nuevos usuarios
 
 ## 🔒 Seguridad
 

@@ -119,25 +119,67 @@ Resources:
         Target: PlanUsageFunction
 
   #######################################
-  # LAMBDA: Send Notification
+  # LAMBDA: Send WhatsApp Notification
   #######################################
-  SendNotificationFunction:
+  SendWhatsAppFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ../src
       Handler: bootstrap
       Runtime: provided.al2023
       Events:
-        SendNotificationApi:
+        SendWhatsAppApi:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
-            Path: /v1/notifications/send
+            Path: /v1/notifications/whatsapp
             Method: POST
     Metadata:
       BuildMethod: makefile
       BuildProperties:
-        Target: SendNotificationFunction
+        Target: SendWhatsAppFunction
+
+  #######################################
+  # LAMBDA: Send SMS Notification
+  #######################################
+  SendSMSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        SendSMSApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v1/notifications/sms
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: SendSMSFunction
+
+  #######################################
+  # LAMBDA: Send Email Notification
+  #######################################
+  SendEmailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../src
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        SendEmailApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /v1/notifications/email
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: SendEmailFunction
 
   # #######################################
   # # LAMBDA: Get Templates (OLD - COMMENTED)

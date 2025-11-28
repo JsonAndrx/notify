@@ -1,4 +1,4 @@
-.PHONY: all build-RegisterBusinessFunction build-RegenerateAPIKeyFunction build-AccountInfoFunction build-PlanUsageFunction build-SendNotificationFunction clean
+.PHONY: all build-RegisterBusinessFunction build-RegenerateAPIKeyFunction build-AccountInfoFunction build-PlanUsageFunction build-SendWhatsAppFunction build-SendSMSFunction build-SendEmailFunction clean
 
 SRC_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 PROJECT_ROOT := $(realpath $(SRC_DIR)/..)
@@ -6,7 +6,7 @@ BUILD_DIR := $(PROJECT_ROOT)/infrastructure/.aws-sam/build
 
 all: build
 
-build: build-RegisterBusinessFunction build-RegenerateAPIKeyFunction build-AccountInfoFunction build-PlanUsageFunction build-SendNotificationFunction
+build: build-RegisterBusinessFunction build-RegenerateAPIKeyFunction build-AccountInfoFunction build-PlanUsageFunction build-SendWhatsAppFunction build-SendSMSFunction build-SendEmailFunction
 
 build-RegisterBusinessFunction:
 	@echo "Building RegisterBusinessFunction..."
@@ -32,11 +32,23 @@ build-PlanUsageFunction:
 	cd $(SRC_DIR)/cmd/plan/usage && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $(BUILD_DIR)/PlanUsageFunction/bootstrap main.go
 	chmod +x $(BUILD_DIR)/PlanUsageFunction/bootstrap
 
-build-SendNotificationFunction:
-	@echo "Building SendNotificationFunction..."
-	mkdir -p $(BUILD_DIR)/SendNotificationFunction
-	cd $(SRC_DIR)/cmd/notifications/send && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $(BUILD_DIR)/SendNotificationFunction/bootstrap main.go
-	chmod +x $(BUILD_DIR)/SendNotificationFunction/bootstrap
+build-SendWhatsAppFunction:
+	@echo "Building SendWhatsAppFunction..."
+	mkdir -p $(BUILD_DIR)/SendWhatsAppFunction
+	cd $(SRC_DIR)/cmd/notifications/whatsapp && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $(BUILD_DIR)/SendWhatsAppFunction/bootstrap main.go
+	chmod +x $(BUILD_DIR)/SendWhatsAppFunction/bootstrap
+
+build-SendSMSFunction:
+	@echo "Building SendSMSFunction..."
+	mkdir -p $(BUILD_DIR)/SendSMSFunction
+	cd $(SRC_DIR)/cmd/notifications/sms && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $(BUILD_DIR)/SendSMSFunction/bootstrap main.go
+	chmod +x $(BUILD_DIR)/SendSMSFunction/bootstrap
+
+build-SendEmailFunction:
+	@echo "Building SendEmailFunction..."
+	mkdir -p $(BUILD_DIR)/SendEmailFunction
+	cd $(SRC_DIR)/cmd/notifications/email && GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $(BUILD_DIR)/SendEmailFunction/bootstrap main.go
+	chmod +x $(BUILD_DIR)/SendEmailFunction/bootstrap
 
 clean:
 	rm -rf $(BUILD_DIR)

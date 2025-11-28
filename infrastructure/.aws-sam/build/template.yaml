@@ -106,22 +106,60 @@ Resources:
       BuildProperties:
         Target: PlanUsageFunction
       SamResourceId: PlanUsageFunction
-  SendNotificationFunction:
+  SendWhatsAppFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: SendNotificationFunction
+      CodeUri: SendWhatsAppFunction
       Handler: bootstrap
       Runtime: provided.al2023
       Events:
-        SendNotificationApi:
+        SendWhatsAppApi:
           Type: Api
           Properties:
             RestApiId:
               Ref: ApiGateway
-            Path: /v1/notifications/send
+            Path: /v1/notifications/whatsapp
             Method: POST
     Metadata:
       BuildMethod: makefile
       BuildProperties:
-        Target: SendNotificationFunction
-      SamResourceId: SendNotificationFunction
+        Target: SendWhatsAppFunction
+      SamResourceId: SendWhatsAppFunction
+  SendSMSFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SendSMSFunction
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        SendSMSApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /v1/notifications/sms
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: SendSMSFunction
+      SamResourceId: SendSMSFunction
+  SendEmailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: SendEmailFunction
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Events:
+        SendEmailApi:
+          Type: Api
+          Properties:
+            RestApiId:
+              Ref: ApiGateway
+            Path: /v1/notifications/email
+            Method: POST
+    Metadata:
+      BuildMethod: makefile
+      BuildProperties:
+        Target: SendEmailFunction
+      SamResourceId: SendEmailFunction
