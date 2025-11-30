@@ -6,20 +6,40 @@ import (
 	"notify-backend/internal/db"
 	"notify-backend/internal/repository"
 	"notify-backend/internal/utils"
+	"regexp"
+	"strings"
 
 	twilioApi "github.com/twilio/twilio-go/rest/api/v2010"
 )
 
 type SendSMSRequest struct {
-	To      string `json:"to"`
-	Message string `json:"message"`
+	To         string            `json:"to"`
+	TemplateID string            `json:"template_id"`
+	Parameters map[string]string `json:"parameters"`
 }
 
 type SendSMSResponse struct {
 	Success           bool   `json:"success"`
 	NotificationID    string `json:"notification_id"`
+	TemplateUsed      string `json:"template_used"`
 	NotificationCount int    `json:"notification_count"`
 	NotificationLeft  int    `json:"notification_left"`
+}
+
+// buildSMSMessage construye el mensaje SMS a partir del template y parámetros
+func buildSMSMessage(template string, params map[string]string) string {
+	message := template
+	for key, value := range params {
+		placeholder := "$" + key
+		message = strings.ReplaceAll(message, placeholder, value)
+	}
+	return message
+}
+
+// validateVerificationCode valida que el código sea numérico y tenga entre 4 y 6 dígitos
+func validateVerificationCode(code string) bool {
+	matched, _ := regexp.MatchString(`^\d{4,6}$`, code)
+	return matched
 }
 
 func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error) {
@@ -27,6 +47,7 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 	businessRepo := repository.NewBusinessRepository(client, "NotificationService")
 	planRepo := repository.NewPlanRepository(client, "NotificationService")
 	usageRepo := repository.NewUsageRepository(client, "NotificationService")
+	templateRepo := repository.NewTemplateRepository(client, "NotificationService")
 	ctx := context.TODO()
 
 	// Validar formato del número de teléfono
@@ -35,15 +56,6 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 		return nil, fmt.Errorf("invalid phone number format")
 	}
 	req.To = formattedPhone
-
-	// Validar longitud del mensaje
-	if len(req.Message) == 0 {
-		return nil, fmt.Errorf("message cannot be empty")
-	}
-
-	if len(req.Message) > 1600 {
-		return nil, fmt.Errorf("message too long")
-	}
 
 	// Buscar negocio por API Key
 	business, err := businessRepo.GetByAPIKey(ctx, apiKey)
@@ -70,6 +82,46 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 		return nil, fmt.Errorf("notification limit reached")
 	}
 
+	// Validar que la plantilla existe y es de tipo sms
+	template, err := templateRepo.GetByID(ctx, req.TemplateID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid template")
+	}
+
+	if template.Type != "sms" {
+		return nil, fmt.Errorf("invalid template type")
+	}
+
+	if !template.Active {
+		return nil, fmt.Errorf("template not available")
+	}
+
+	// Validar parámetros de la plantilla
+	validation := templateRepo.ValidateTemplateParameters(template, req.Parameters)
+	if !validation.Valid {
+		if len(validation.MissingParams) > 0 {
+			return nil, fmt.Errorf("missing required parameters")
+		}
+	}
+
+	// Validaciones específicas para template de verificación
+	if template.TemplateID == "sms_verification_code" {
+		code, hasCode := req.Parameters["codigo"]
+		if !hasCode || !validateVerificationCode(code) {
+			return nil, fmt.Errorf("invalid verification code format")
+		}
+	}
+
+	// Construir mensaje desde template
+	// Agregar el nombre de la empresa automáticamente
+	req.Parameters["empresa"] = business.Name
+	message := buildSMSMessage(template.Description, req.Parameters)
+
+	// Validar longitud del mensaje final
+	if len(message) > 1600 {
+		return nil, fmt.Errorf("message too long")
+	}
+
 	// Obtener cliente de Twilio
 	twilioClient := GetTwilioClient()
 	twilioPhoneNumber := GetTwilioPhoneNumber()
@@ -83,17 +135,17 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 	params := &twilioApi.CreateMessageParams{}
 	params.SetTo(req.To)
 	params.SetFrom(twilioPhoneNumber)
-	params.SetBody(req.Message)
+	params.SetBody(message)
 
-	message, err := twilioClient.Api.CreateMessage(params)
+	twilioMessage, err := twilioClient.Api.CreateMessage(params)
 	if err != nil {
 		// Log interno del error real para debugging
 		fmt.Printf("Twilio SMS error: %v\n", err)
 		return nil, fmt.Errorf("failed to send notification")
 	}
 
-	notificationID := *message.Sid
-	fmt.Printf("SMS sent - MessageSID: %s, To: %s\n", notificationID, req.To)
+	notificationID := *twilioMessage.Sid
+	fmt.Printf("SMS sent - MessageSID: %s, To: %s, Template: %s\n", notificationID, req.To, template.TemplateID)
 
 	// Incrementar contador de uso
 	err = usageRepo.IncrementUsage(ctx, businessID, usage.SK)
@@ -113,6 +165,7 @@ func SendSMSService(apiKey string, req SendSMSRequest) (*SendSMSResponse, error)
 	return &SendSMSResponse{
 		Success:           true,
 		NotificationID:    notificationID,
+		TemplateUsed:      template.Name,
 		NotificationCount: newCount,
 		NotificationLeft:  notificationLeft,
 	}, nil

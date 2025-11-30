@@ -13,8 +13,9 @@ import (
 )
 
 type SendSMSRequest struct {
-	To      string `json:"to" validate:"required"`
-	Message string `json:"message" validate:"required,max=1600"`
+	To         string            `json:"to" validate:"required"`
+	TemplateID string            `json:"template_id" validate:"required"`
+	Parameters map[string]string `json:"parameters"`
 }
 
 func SendSMSHandler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
@@ -32,12 +33,13 @@ func SendSMSHandler(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 
 	validate := validator.New()
 	if err := validate.Struct(req); err != nil {
-		return response.ErrorResponse(400, "Invalid request body: "+err.Error()), nil
+		return response.ErrorResponse(400, "Invalid request body"), nil
 	}
 
 	serviceReq := services.SendSMSRequest{
-		To:      req.To,
-		Message: req.Message,
+		To:         req.To,
+		TemplateID: req.TemplateID,
+		Parameters: req.Parameters,
 	}
 
 	result, err := services.SendSMSService(apiKey, serviceReq)
@@ -45,14 +47,14 @@ func SendSMSHandler(request events.APIGatewayProxyRequest) (events.APIGatewayPro
 		statusCode := 500
 		errMsg := err.Error()
 
-		if errMsg == "invalid API key" {
+		if errMsg == "authentication failed" {
 			statusCode = 401
 		} else if errMsg == "notification limit reached" {
 			statusCode = 429
-		} else if errMsg == "message cannot be empty" || errMsg == "message too long. Maximum 1600 characters allowed" {
+		} else if errMsg == "invalid phone number format" || errMsg == "invalid template" || errMsg == "invalid template type" || errMsg == "missing required parameters" || errMsg == "invalid verification code format" || errMsg == "message too long" {
 			statusCode = 400
-		} else if len(errMsg) > 16 && errMsg[:16] == "failed to send SMS" {
-			statusCode = 502
+		} else if errMsg == "template not available" {
+			statusCode = 404
 		}
 
 		return response.ErrorResponse(statusCode, errMsg), nil
