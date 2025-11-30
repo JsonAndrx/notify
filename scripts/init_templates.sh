@@ -29,15 +29,15 @@ aws dynamodb put-item \
         "name": {"S": "Recordatorio General"},
         "type": {"S": "whatsapp"},
         "provider": {"S": "twilio"},
-        "externalId": {"S": "HXee830abc1d548d784f6963529c36b327"},
+        "externalId": {"S": "HX334eac2cb8f3264c1cd104107bd39584"},
         "parameters": {"L": [
+            {"S": "company"},
             {"S": "name"},
             {"S": "service"},
-            {"S": "date"},
-            {"S": "contact"}
+            {"S": "date"}
         ]},
         "parameterCount": {"N": "4"},
-        "description": {"S": "Header y Body usan {{1}}=nombre | Body: 👋 ¡Hola {{1}}=nombre!, te recordamos tu {{2}}=servicio programado(a) para {{3}}=fecha. ⏰ contáctanos a {{4}}=contacto, Si necesitas reprogramar."},
+        "description": {"S": "Header: {{1}}=empresa | Body: 👋Hola {{2}}=nombre, recordatorio: tu {{3}}=servicio está programado para {{4}}=fecha según nuestro registro."},
         "active": {"BOOL": true},
         "createdAt": {"S": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}
     }' > /dev/null
@@ -57,15 +57,15 @@ aws dynamodb put-item \
         "name": {"S": "Actualización de Estado"},
         "type": {"S": "whatsapp"},
         "provider": {"S": "twilio"},
-        "externalId": {"S": "HX78b9865cd3ad336a37d17fa63b7f0c26"},
+        "externalId": {"S": "HX879326777b5252e74303734ca3b8066d"},
         "parameters": {"L": [
+            {"S": "company"},
             {"S": "name"},
             {"S": "service"},
-            {"S": "status"},
-            {"S": "company"}
+            {"S": "status"}
         ]},
         "parameterCount": {"N": "4"},
-        "description": {"S": "Header y Body usan {{1}}=nombre | Body: 👋 ¡Hola {{1}}=nombre!, tenemos una actualización sobre tu {{2}}=servicio. 📍 Estado actual: {{3}}=estado. Somos {{4}}=empresa, te mantendremos informado(a)."},
+        "description": {"S": "Header: {{1}}=empresa | Body: 👋 ¡Hola {{2}}=nombre!, tenemos una actualización sobre tu {{3}}=servicio. 📍 Estado actual: {{4}}=estado. Te mantendremos informado(a)."},
         "active": {"BOOL": true},
         "createdAt": {"S": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}
     }' > /dev/null
@@ -85,15 +85,15 @@ aws dynamodb put-item \
         "name": {"S": "Confirmación General"},
         "type": {"S": "whatsapp"},
         "provider": {"S": "twilio"},
-        "externalId": {"S": "HXcbd993c4737e3c2a9b0f9a7332f01b33"},
+        "externalId": {"S": "HXa771b1c388451770e47d0291001c54b5"},
         "parameters": {"L": [
+            {"S": "company"},
             {"S": "name"},
             {"S": "service"},
-            {"S": "detail"},
-            {"S": "company"}
+            {"S": "detail"}
         ]},
         "parameterCount": {"N": "4"},
-        "description": {"S": "Header y Body usan {{1}}=nombre | Body: 👋 ¡Hola {{1}}=nombre!, tu {{2}}=servicio ha sido confirmado(a). 📌 Detalle: {{3}}=detalle. Somos {{4}}=empresa gracias por confiar en nosotros."},
+        "description": {"S": "Header: {{1}}=empresa | Body: 👋 Hola {{2}}=nombre, tu {{3}}=servicio ha sido confirmado(a). 📌 Detalle: {{4}}=detalle. Si necesitas más información, contáctanos."},
         "active": {"BOOL": true},
         "createdAt": {"S": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}
     }' > /dev/null
@@ -105,22 +105,22 @@ echo -e "${GREEN}✓ Templates creados exitosamente${NC}"
 echo ""
 echo "Templates disponibles:"
 echo "  1. recordatorio_general (4 parámetros)"
-echo "     - name: {{1}} (usado en header y body)"
-echo "     - service: {{2}} del body"
-echo "     - date: {{3}} del body"
-echo "     - contact: {{4}} del body"
+echo "     - company: {{1}} del header (nombre empresa)"
+echo "     - name: {{2}} del body (nombre destinatario)"
+echo "     - service: {{3}} del body"
+echo "     - date: {{4}} del body"
 echo ""
 echo "  2. actualizacion_estado (4 parámetros)"
-echo "     - name: {{1}} (usado en header y body)"
-echo "     - service: {{2}} del body"
-echo "     - status: {{3}} del body"
-echo "     - company: {{4}} del body"
+echo "     - company: {{1}} del header (nombre empresa)"
+echo "     - name: {{2}} del body (nombre destinatario)"
+echo "     - service: {{3}} del body"
+echo "     - status: {{4}} del body"
 echo ""
 echo "  3. confirmacion_general (4 parámetros)"
-echo "     - name: {{1}} (usado en header y body)"
-echo "     - service: {{2}} del body"
-echo "     - detail: {{3}} del body"
-echo "     - company: {{4}} del body"
+echo "     - company: {{1}} del header (nombre empresa)"
+echo "     - name: {{2}} del body (nombre destinatario)"
+echo "     - service: {{3}} del body"
+echo "     - detail: {{4}} del body"
 echo ""
 echo "Ejemplo de uso:"
 echo 'curl -X POST http://localhost:3000/v1/notifications/whatsapp \'
@@ -130,9 +130,9 @@ echo '  -d '"'"'{
     "to": "+573001234567",
     "template_id": "recordatorio_general",
     "parameters": {
+      "company": "Mi Empresa SAS",
       "name": "Yeison Peñaranda",
       "service": "Suscripcion Mensual",
-      "date": "esta proxima a vencer el 1 de Diciembre",
-      "contact": "notify@soporte.com"
+      "date": "1 de Diciembre a las 10:00 AM"
     }
   }'"'"

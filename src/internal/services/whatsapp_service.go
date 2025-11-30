@@ -25,35 +25,16 @@ type SendWhatsAppResponse struct {
 	NotificationLeft  int    `json:"notification_left"`
 }
 
+// buildTwilioContentVariables convierte parámetros nombrados a formato JSON de Twilio
+// En WhatsApp, cuando el template tiene header y body que usan {{1}}, ambos comparten el mismo valor
+// Ejemplo: template con 3 params ["name", "service", "date"] genera {"1":"Juan","2":"cita","3":"10:00"}
+// Donde {{1}} del header y {{1}} del body serán "Juan"
 func buildTwilioContentVariables(paramOrder []string, paramValues map[string]string) string {
 	variables := make(map[string]string)
 
-	idx := 1
-	skipHeaderName := false
-
-	// Verificar si tenemos tanto header_name como body_name
-	hasHeaderName := false
-	hasBodyName := false
-	for _, paramName := range paramOrder {
-		if paramName == "header_name" {
-			hasHeaderName = true
-		}
-		if paramName == "body_name" {
-			hasBodyName = true
-		}
-	}
-
-	// Si tenemos ambos, skip header_name porque body_name será el {{1}} compartido
-	skipHeaderName = hasHeaderName && hasBodyName
-
-	for _, paramName := range paramOrder {
-		// Saltar header_name si tenemos body_name
-		if paramName == "header_name" && skipHeaderName {
-			continue
-		}
-
-		variables[fmt.Sprintf("%d", idx)] = paramValues[paramName]
-		idx++
+	// Mapear directamente en orden: 1, 2, 3, ...
+	for i, paramName := range paramOrder {
+		variables[fmt.Sprintf("%d", i+1)] = paramValues[paramName]
 	}
 
 	jsonBytes, _ := json.Marshal(variables)
